@@ -46,7 +46,7 @@
             {'title': 'filename',
              'render': function(data, type, row, meta){
                  if(type === "display") {
-                    data = '<a href="' + data[1] + '">' + data[0] + '</a>';
+                    data = '<a href="/' + data[1] + '">' + data[0] + '</a>';
                  }
                  return data;
              }}

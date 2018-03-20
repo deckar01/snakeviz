@@ -3,11 +3,6 @@
 import os.path
 from pstats import Stats
 
-try:
-    from urllib.parse import quote_plus
-except ImportError:
-    from urllib import quote_plus
-
 import tornado.ioloop
 import tornado.web
 
@@ -20,12 +15,14 @@ settings = {
     'gzip': True
 }
 
+PROFILE_PATH = 'profiles'
+
 
 class VizHandler(tornado.web.RequestHandler):
     def get(self, profile_name):
-        abspath = os.path.abspath(profile_name)
-        if os.path.isdir(abspath):
-            self._list_dir(abspath)
+        profile_name = os.path.join(PROFILE_PATH, profile_name)
+        if os.path.isdir(profile_name):
+            self._list_dir(profile_name)
         else:
             try:
                 s = Stats(profile_name)
@@ -33,7 +30,8 @@ class VizHandler(tornado.web.RequestHandler):
                 raise RuntimeError('Could not read %s.' % profile_name)
             self.render(
                 'viz.html', profile_name=profile_name,
-                table_rows=table_rows(s), callees=json_stats(s))
+                table_rows=table_rows(s), callees=json_stats(s)
+            )
 
     def _list_dir(self, path):
         """
@@ -41,26 +39,26 @@ class VizHandler(tornado.web.RequestHandler):
 
         """
         entries = os.listdir(path)
-        dir_entries = [
-            [['..', quote_plus(os.path.normpath(os.path.join(path, '..')))]]]
+        parentpath = os.path.normpath(os.path.join(path, '..'))
+        parentlink = os.path.relpath(parentpath, PROFILE_PATH)
+        dir_entries = [[['..', str(parentlink)]]]
         for name in entries:
             if name.startswith('.'):
                 # skip invisible files/directories
                 continue
-            fullname = os.path.join(path, name)
-            displayname = linkname = name
+            fullpath = str(os.path.join(path, name))
+            linkpath = os.path.relpath(fullpath, PROFILE_PATH)
+            displayname = str(name)
             # Append / for directories or @ for symbolic links
-            if os.path.isdir(fullname):
+            if os.path.isdir(fullpath):
                 displayname += '/'
-            if os.path.islink(fullname):
+            if os.path.islink(fullpath):
                 displayname += '@'
-            dir_entries.append(
-                [[displayname, quote_plus(os.path.join(path, linkname))]])
-
+            dir_entries.append([[displayname, linkpath]])
         self.render(
             'dir.html', dir_name=path, dir_entries=dir_entries)
 
-handlers = [(r'/snakeviz/(.*)', VizHandler)]
+handlers = [(r'/(.*)', VizHandler)]
 
 app = tornado.web.Application(handlers, **settings)
 
