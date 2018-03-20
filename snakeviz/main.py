@@ -11,7 +11,7 @@ except ImportError:
 import tornado.ioloop
 import tornado.web
 
-from .stats import table_rows, json_stats
+from stats import table_rows, json_stats
 
 settings = {
     'static_path': os.path.join(os.path.dirname(__file__), 'static'),
